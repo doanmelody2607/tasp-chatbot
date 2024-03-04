@@ -1,113 +1,217 @@
-import Image from "next/image";
+'use client';
+
+import MessageList from '@/components/MessageList';
+import { delay } from '@/libs/utils';
+import { IChatHistory, IMessage } from '@/shared/message';
+import Image from 'next/image';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
+
+// Function to get initial mode from localStorage if available
+const isOnDarkMode = () => {
+    const dark =
+        localStorage.getItem('theme') === 'dark' ||
+        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+    return dark;
+};
 
 export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    // Dark - Light mode
+    const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+    const [chatList, setChatList] = useState<IChatHistory[]>([
+        {
+            id: 1,
+            title: 'Chat 1',
+            messages: [
+                { text: 'Hello! How can I help you?', isUser: false },
+                { text: 'Can you provide more information?', isUser: true },
+                { text: 'Sure! What do you need help with?', isUser: false },
+            ],
+        },
+        {
+            id: 2,
+            title: 'Chat 2',
+            messages: [
+                { text: 'Chào anh hai', isUser: true },
+                { text: 'Quen biết đéo gì mà chào', isUser: false },
+            ],
+        },
+        {
+            id: 3,
+            title: 'Chat 3',
+            messages: [],
+        },
+    ]);
+    const [chatId, setChatId] = useState<number>(1);
+    const currentChat = chatList.find((chat) => chat.id === chatId) || chatList[0];
+    const [inputValue, setInputValue] = useState<string>('');
+    const inputRef = useRef<HTMLInputElement | null>(null);
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', isDarkMode);
+
+        if (isDarkMode) {
+            localStorage.setItem('theme', 'dark');
+        } else {
+            localStorage.setItem('theme', 'light');
+        }
+    }, [isDarkMode]);
+
+    const toggleDarkMode = () => {
+        setIsDarkMode((prevMode) => !prevMode);
+    };
+
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+
+        if (!value.startsWith(' ')) {
+            setInputValue(value);
+        }
+    };
+
+    const handleSubmit = async () => {
+        if (!inputValue) return;
+
+        const newMessages: IMessage = { text: inputValue, isUser: true };
+
+        currentChat.messages.push(newMessages);
+
+        const chatIndex = chatList.findIndex((chat) => chat.id === currentChat.id);
+
+        setChatList((prevChatList) => {
+            prevChatList.splice(chatIndex, 1, currentChat);
+            return prevChatList;
+        });
+        setInputValue('');
+        inputRef.current?.focus();
+    };
+
+    return (
+        <div className="flex h-screen bg-white text-black dark:bg-[#1f2937] dark:text-white">
+            {/* Sidebar */}
+            <div className="w-1/4 border-r border-gray-200">
+                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                    <h1 className="text-lg font-semibold text-dark-900 dark:text-white">Chat GPT</h1>
+
+                    <button
+                        className="py-1 px-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                        onClick={toggleDarkMode}
+                    >
+                        {isDarkMode ? (
+                            <svg
+                                id="sun"
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentcolor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <line x1="12" y1="1" x2="12" y2="3"></line>
+                                <line x1="12" y1="21" x2="12" y2="23"></line>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                <line x1="1" y1="12" x2="3" y2="12"></line>
+                                <line x1="21" y1="12" x2="23" y2="12"></line>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                            </svg>
+                        ) : (
+                            <svg
+                                id="moon"
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentcolor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                            </svg>
+                        )}
+                    </button>
+                </div>
+                <div className="p-4 overflow-y-auto">
+                    {/* Display chat history here */}
+                    {chatList.map((chat, index) => (
+                        <div
+                            key={index}
+                            className={`mb-2 rounded-lg p-2 cursor-pointer transition duration-300 ${
+                                isDarkMode
+                                    ? 'hover:bg-gray-700 hover:text-white'
+                                    : 'hover:bg-gray-200 hover:text-gray-900'
+                            } ${currentChat.id === chat.id ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-200') : ''}`}
+                            onClick={() => {
+                                setChatId(chat.id);
+                            }}
+                        >
+                            <p className="text-sm">{chat.title}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Main Chat Area */}
+            <div className="flex-1 flex flex-col">
+                {currentChat.messages.length > 0 ? (
+                    <div className="flex-1 overflow-y-auto p-4">
+                        <MessageList messages={currentChat.messages} />
+                    </div>
+                ) : (
+                    <div className="flex-1 flex items-center justify-center">
+                        <p className="text-2xl font-bold text-black dark:text-white">How can I help you today?</p>
+                    </div>
+                )}
+                <div className="p-4 border-t border-gray-300 flex items-center">
+                    <div className="w-full px-4 border border-gray-300 focus-within:border-gray-400 dark:border-gray-600 dark:focus-within:border-gray-500 rounded-md flex items-center justify-between">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            className="prompt flex-1 py-3 border-none outline-none dark:caret-gray-300 bg-transparent"
+                            placeholder="Type a message..."
+                            value={inputValue}
+                            onChange={handleInputChange}
+                            onKeyDown={(e) => {
+                                if (e.which === 13) {
+                                    handleSubmit();
+                                }
+                            }}
+                        />
+
+                        <button
+                            className={`search-btn p-1 bg-gray-200 dark:bg-gray-700 rounded-lg ${
+                                !inputValue
+                                    ? 'cursor-default'
+                                    : 'cursor-pointer transition duration-300 hover:scale-110 active:scale-90'
+                            }`}
+                        >
+                            <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                className={`${isDarkMode ? 'dark' : 'light'} text-gray-600/50 dark:text-gray-200/60`}
+                                onClick={handleSubmit}
+                            >
+                                <path
+                                    d="M7 11L12 6L17 11M12 18V7"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+    );
 }
